@@ -1,0 +1,215 @@
+<section class="card">
+  <div class="section-header">
+    <div>
+      <h2>Template studio</h2>
+      <p class="section-description">
+        Define reusable layouts for pages, group them into books, and connect books inside a catalog blueprint.
+      </p>
+    </div>
+    <button class="btn btn-secondary" type="button" (click)="resetAllData()">Reset everything</button>
+  </div>
+
+  <form class="form-grid" [formGroup]="pageTemplateForm" (ngSubmit)="submitPageTemplate()">
+    <h3>Page template</h3>
+    <div class="form-grid two-column">
+      <label>
+        Name
+        <input type="text" formControlName="name" placeholder="Article page" />
+      </label>
+      <label>
+        Description
+        <input type="text" formControlName="description" placeholder="Short summary" />
+      </label>
+    </div>
+
+    <div class="field-builder" [formGroup]="fieldDraftForm">
+      <h4>Add page fields</h4>
+      <div class="inline-fields">
+        <label>
+          Label
+          <input type="text" formControlName="name" placeholder="Title" />
+        </label>
+        <label>
+          Type
+          <select formControlName="type">
+            <option *ngFor="let fieldType of fieldTypes" [value]="fieldType.value">{{ fieldType.label }}</option>
+          </select>
+        </label>
+        <label>
+          Helper text
+          <input type="text" formControlName="description" placeholder="Visible hint (optional)" />
+        </label>
+        <button type="button" class="btn btn-secondary" (click)="addField()">Add field</button>
+      </div>
+    </div>
+
+    <div *ngIf="fields.controls.length > 0; else emptyFields" class="field-list">
+      <h4>Preview</h4>
+      <ul class="list">
+        <li class="list-item" *ngFor="let field of fields.controls; let i = index; trackBy: trackByIndex">
+          <div class="section-header">
+            <div>
+              <strong>{{ (field.value as any).name }}</strong>
+              <span class="tag">{{ getFieldLabel((field.value as any).type) }}</span>
+            </div>
+            <button type="button" class="btn btn-secondary" (click)="removeField(i)">Remove</button>
+          </div>
+          <p class="muted" *ngIf="(field.value as any).description">{{ (field.value as any).description }}</p>
+        </li>
+      </ul>
+    </div>
+    <ng-template #emptyFields>
+      <p class="empty-state">Add at least one field to save this page template.</p>
+    </ng-template>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save page template</button>
+      <button class="btn btn-secondary" type="button" (click)="resetPageTemplateForm()">Clear form</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Existing page templates</h3>
+  <ng-container *ngIf="pageTemplates$ | async as pageTemplates; else emptyPageTemplates">
+    <ul class="list" *ngIf="pageTemplates.length > 0; else emptyPageTemplates">
+      <li class="list-item" *ngFor="let template of pageTemplates; trackBy: trackById">
+        <div class="section-header">
+          <div>
+            <strong>{{ template.name }}</strong>
+            <p class="muted" *ngIf="template.description">{{ template.description }}</p>
+          </div>
+          <button class="btn btn-secondary" type="button" (click)="deletePageTemplate(template.id)">
+            Delete
+          </button>
+        </div>
+        <div class="badge-group">
+          <span class="tag" *ngFor="let field of template.fields">{{ field.name }} · {{ getFieldLabel(field.type) }}</span>
+        </div>
+      </li>
+    </ul>
+  </ng-container>
+</section>
+<ng-template #emptyPageTemplates>
+  <p class="empty-state">No page templates yet. Create one above.</p>
+</ng-template>
+
+<section class="card">
+  <form class="form-grid" [formGroup]="bookTemplateForm" (ngSubmit)="submitBookTemplate()">
+    <h3>Book template</h3>
+    <p class="section-description">
+      Select the page templates that compose a book. The order defines the expected flow for book builders.
+    </p>
+    <div class="form-grid two-column">
+      <label>
+        Name
+        <input type="text" formControlName="name" placeholder="Product handbook" />
+      </label>
+      <label>
+        Description
+        <input type="text" formControlName="description" placeholder="Purpose (optional)" />
+      </label>
+    </div>
+    <label>
+      Required page templates
+      <select formControlName="pageTemplateIds" multiple size="5">
+        <option *ngFor="let template of (pageTemplates$ | async) ?? []" [value]="template.id">
+          {{ template.name }}
+        </option>
+      </select>
+    </label>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save book template</button>
+      <button class="btn btn-secondary" type="button" (click)="bookTemplateForm.reset({ name: '', description: '', pageTemplateIds: [] })">
+        Clear form
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Existing book templates</h3>
+  <ng-container *ngIf="(bookTemplates$ | async) as bookTemplates; else emptyBookTemplates">
+    <ul class="list" *ngIf="bookTemplates.length > 0; else emptyBookTemplates">
+      <li class="list-item" *ngFor="let template of bookTemplates; trackBy: trackById">
+        <div class="section-header">
+          <div>
+            <strong>{{ template.name }}</strong>
+            <p class="muted" *ngIf="template.description">{{ template.description }}</p>
+          </div>
+          <button class="btn btn-secondary" type="button" (click)="deleteBookTemplate(template.id)">
+            Delete
+          </button>
+        </div>
+        <div class="badge-group">
+          <span class="tag" *ngFor="let pageId of template.pageTemplateIds">
+            {{ (pageTemplates$ | async)?.find((page) => page.id === pageId)?.name || 'Unknown page' }}
+          </span>
+        </div>
+      </li>
+    </ul>
+  </ng-container>
+</section>
+<ng-template #emptyBookTemplates>
+  <p class="empty-state">No book templates yet. Combine page templates to create one.</p>
+</ng-template>
+
+<section class="card">
+  <form class="form-grid" [formGroup]="catalogTemplateForm" (ngSubmit)="submitCatalogTemplate()">
+    <h3>Catalog template</h3>
+    <p class="section-description">
+      Group book templates to outline complete catalogs. Builders will connect finished books that match these blueprints.
+    </p>
+    <div class="form-grid two-column">
+      <label>
+        Name
+        <input type="text" formControlName="name" placeholder="Spring release catalog" />
+      </label>
+      <label>
+        Description
+        <input type="text" formControlName="description" placeholder="Optional context" />
+      </label>
+    </div>
+    <label>
+      Book templates in this catalog
+      <select formControlName="bookTemplateIds" multiple size="5">
+        <option *ngFor="let template of (bookTemplates$ | async) ?? []" [value]="template.id">
+          {{ template.name }}
+        </option>
+      </select>
+    </label>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save catalog template</button>
+      <button class="btn btn-secondary" type="button" (click)="catalogTemplateForm.reset({ name: '', description: '', bookTemplateIds: [] })">
+        Clear form
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Existing catalog templates</h3>
+  <ng-container *ngIf="(catalogTemplates$ | async) as catalogTemplates; else emptyCatalogTemplates">
+    <ul class="list" *ngIf="catalogTemplates.length > 0; else emptyCatalogTemplates">
+      <li class="list-item" *ngFor="let template of catalogTemplates; trackBy: trackById">
+        <div class="section-header">
+          <div>
+            <strong>{{ template.name }}</strong>
+            <p class="muted" *ngIf="template.description">{{ template.description }}</p>
+          </div>
+          <button class="btn btn-secondary" type="button" (click)="deleteCatalogTemplate(template.id)">
+            Delete
+          </button>
+        </div>
+        <div class="badge-group">
+          <span class="tag" *ngFor="let bookId of template.bookTemplateIds">
+            {{ (bookTemplates$ | async)?.find((book) => book.id === bookId)?.name || 'Unknown book' }}
+          </span>
+        </div>
+      </li>
+    </ul>
+  </ng-container>
+</section>
+<ng-template #emptyCatalogTemplates>
+  <p class="empty-state">No catalog templates yet. Connect book templates above.</p>
+</ng-template>

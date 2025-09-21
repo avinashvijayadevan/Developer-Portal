@@ -1,0 +1,23 @@
+<header class="app-header">
+  <div class="container header-content">
+    <div class="branding">
+      <span class="logo">📚</span>
+      <div>
+        <h1>{{ title }}</h1>
+        <p class="tagline">Design reusable publishing templates and assemble catalogs in the browser.</p>
+      </div>
+    </div>
+    <nav class="main-nav">
+      <a routerLink="/templates" routerLinkActive="active">Template studio</a>
+      <a routerLink="/viewer" routerLinkActive="active">Content workspace</a>
+    </nav>
+  </div>
+</header>
+<main class="container">
+  <router-outlet></router-outlet>
+</main>
+<footer class="app-footer">
+  <div class="container">
+    <small>Local storage is used for persistence. Add your backend later without losing progress.</small>
+  </div>
+</footer>
