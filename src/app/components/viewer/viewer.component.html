@@ -1,0 +1,232 @@
+<section class="card">
+  <h2>Content workspace</h2>
+  <p class="section-description">
+    Use the templates to assemble real pages, books, and catalogs. Everything persists in this browser via local storage.
+  </p>
+</section>
+
+<section class="card">
+  <form class="form-grid" [formGroup]="pageInstanceForm" (ngSubmit)="submitPageInstance()">
+    <h3>Create a page</h3>
+    <div class="form-grid two-column">
+      <label>
+        Template
+        <select formControlName="templateId">
+          <option value="" disabled>Select a page template</option>
+          <option *ngFor="let template of pageTemplates" [value]="template.id">{{ template.name }}</option>
+        </select>
+      </label>
+      <label>
+        Internal title
+        <input type="text" formControlName="title" placeholder="Marketing overview" />
+      </label>
+    </div>
+
+    <ng-container *ngIf="pageInstanceForm.get('templateId')?.value as pageTemplateId">
+      <div formGroupName="values" class="data-grid">
+        <div class="select-field" *ngFor="let field of pageTemplateFields(pageTemplateId)?.fields ?? []">
+          <label [attr.for]="field.id">
+            {{ field.name }}
+            <span class="muted" *ngIf="field.description">{{ field.description }}</span>
+          </label>
+          <ng-container [ngSwitch]="field.type">
+            <input
+              *ngSwitchCase="'short-text'"
+              type="text"
+              [formControlName]="field.id"
+              [id]="field.id"
+              placeholder="Enter {{ field.name | lowercase }}"
+            />
+            <textarea
+              *ngSwitchCase="'long-text'"
+              [formControlName]="field.id"
+              [id]="field.id"
+              placeholder="Enter {{ field.name | lowercase }}"
+            ></textarea>
+            <input
+              *ngSwitchCase="'number'"
+              type="number"
+              [formControlName]="field.id"
+              [id]="field.id"
+              placeholder="Enter {{ field.name | lowercase }}"
+            />
+            <input
+              *ngSwitchCase="'date'"
+              type="date"
+              [formControlName]="field.id"
+              [id]="field.id"
+            />
+            <input
+              *ngSwitchDefault
+              type="text"
+              [formControlName]="field.id"
+              [id]="field.id"
+              placeholder="Enter {{ field.name | lowercase }}"
+            />
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save page</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Saved pages</h3>
+  <ul class="list" *ngIf="pageInstances.length > 0; else emptyPages">
+    <li class="list-item" *ngFor="let page of pageInstances; trackBy: trackById">
+      <div class="section-header">
+        <div>
+          <strong>{{ page.title }}</strong>
+          <p class="muted">{{ pageTemplateName(page.templateId) }}</p>
+        </div>
+        <button class="btn btn-secondary" type="button" (click)="deletePageInstance(page.id)">Delete</button>
+      </div>
+      <div class="badge-group">
+        <span class="tag" *ngFor="let field of pageTemplateFields(page.templateId)?.fields ?? []">
+          {{ field.name }}: {{ page.values[field.id] || '—' }}
+        </span>
+      </div>
+    </li>
+  </ul>
+</section>
+<ng-template #emptyPages>
+  <p class="empty-state">Save a page to see it here.</p>
+</ng-template>
+
+<section class="card">
+  <form class="form-grid" [formGroup]="bookInstanceForm" (ngSubmit)="submitBookInstance()">
+    <h3>Assemble a book</h3>
+    <div class="form-grid two-column">
+      <label>
+        Template
+        <select formControlName="templateId">
+          <option value="" disabled>Select a book template</option>
+          <option *ngFor="let template of bookTemplates" [value]="template.id">{{ template.name }}</option>
+        </select>
+      </label>
+      <label>
+        Title
+        <input type="text" formControlName="title" placeholder="Q2 campaign book" />
+      </label>
+    </div>
+
+    <ng-container *ngIf="bookInstanceForm.get('templateId')?.value as bookTemplateId">
+      <ng-container *ngIf="bookTemplates.find((template) => template.id === bookTemplateId) as selectedBookTemplate">
+        <div formArrayName="pageSelections" class="data-grid">
+          <div class="select-field" *ngFor="let control of bookPageSelections.controls; let i = index">
+            <label>
+              {{ pageTemplateName(selectedBookTemplate.pageTemplateIds[i]) }}
+            </label>
+            <select [formControlName]="i">
+              <option value="">Select a page</option>
+              <option
+                *ngFor="let page of pagesForTemplate(selectedBookTemplate.pageTemplateIds[i])"
+                [value]="page.id"
+              >
+                {{ page.title }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+    </ng-container>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save book</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Saved books</h3>
+  <ul class="list" *ngIf="bookInstances.length > 0; else emptyBooks">
+    <li class="list-item" *ngFor="let book of bookInstances; trackBy: trackById">
+      <div class="section-header">
+        <div>
+          <strong>{{ book.title }}</strong>
+          <p class="muted">{{ bookTemplateName(book.templateId) }}</p>
+        </div>
+        <button class="btn btn-secondary" type="button" (click)="deleteBookInstance(book.id)">Delete</button>
+      </div>
+      <div class="badge-group">
+        <span class="tag" *ngFor="let pageId of book.pageInstanceIds">
+          {{ pageInstances.find((page) => page.id === pageId)?.title || 'Missing page' }}
+        </span>
+      </div>
+    </li>
+  </ul>
+</section>
+<ng-template #emptyBooks>
+  <p class="empty-state">Create a book to list it here.</p>
+</ng-template>
+
+<section class="card">
+  <form class="form-grid" [formGroup]="catalogInstanceForm" (ngSubmit)="submitCatalogInstance()">
+    <h3>Build a catalog</h3>
+    <div class="form-grid two-column">
+      <label>
+        Template
+        <select formControlName="templateId">
+          <option value="" disabled>Select a catalog template</option>
+          <option *ngFor="let template of catalogTemplates" [value]="template.id">{{ template.name }}</option>
+        </select>
+      </label>
+      <label>
+        Title
+        <input type="text" formControlName="title" placeholder="Summer highlights" />
+      </label>
+    </div>
+
+    <ng-container *ngIf="catalogInstanceForm.get('templateId')?.value as catalogTemplateId">
+      <ng-container *ngIf="catalogTemplates.find((template) => template.id === catalogTemplateId) as selectedCatalogTemplate">
+        <div formArrayName="bookSelections" class="data-grid">
+          <div class="select-field" *ngFor="let control of catalogBookSelections.controls; let i = index">
+            <label>
+              {{ bookTemplateName(selectedCatalogTemplate.bookTemplateIds[i]) }}
+            </label>
+            <select [formControlName]="i">
+              <option value="">Select a book</option>
+              <option
+                *ngFor="let book of booksForTemplate(selectedCatalogTemplate.bookTemplateIds[i])"
+                [value]="book.id"
+              >
+                {{ book.title }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </ng-container>
+    </ng-container>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save catalog</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Saved catalogs</h3>
+  <ul class="list" *ngIf="catalogInstances.length > 0; else emptyCatalogs">
+    <li class="list-item" *ngFor="let catalog of catalogInstances; trackBy: trackById">
+      <div class="section-header">
+        <div>
+          <strong>{{ catalog.title }}</strong>
+          <p class="muted">{{ catalogTemplates.find((template) => template.id === catalog.templateId)?.name || 'Catalog' }}</p>
+        </div>
+        <button class="btn btn-secondary" type="button" (click)="deleteCatalogInstance(catalog.id)">Delete</button>
+      </div>
+      <div class="badge-group">
+        <span class="tag" *ngFor="let bookId of catalog.bookInstanceIds">
+          {{ bookInstances.find((book) => book.id === bookId)?.title || 'Missing book' }}
+        </span>
+      </div>
+    </li>
+  </ul>
+</section>
+<ng-template #emptyCatalogs>
+  <p class="empty-state">When you save a catalog it will appear here.</p>
+</ng-template>
